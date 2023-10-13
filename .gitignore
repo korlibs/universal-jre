@@ -1,0 +1,9 @@
+*.tar.gz
+*.jar
+/universal
+/jdk-21+35
+/arm64
+/x86_64
+/.vscode
+/app
+
