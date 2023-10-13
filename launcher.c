@@ -9,7 +9,7 @@
 #include <mach-o/dyld.h>
 #include <CoreFoundation/CoreFoundation.h>
 
-#include <jni.h>
+#include "./jdk-21+35/Contents/Home/include/jni.h"
 
 typedef jint (JNICALL CreateJavaVM_t)(JavaVM **, void **, void *);
 
@@ -25,12 +25,19 @@ get_application_directory(char *buffer, uint32_t len)
     char *last_slash = NULL;
     int n = 2;
 
-    if ( ! _NSGetExecutablePath(buffer, &len) ) {
-        while ( n-- > 2 ) {
-            if ( (last_slash = strrchr(buffer, '/')) )
-                *last_slash = '\0';
-        }
+    if ( !_NSGetExecutablePath(buffer, &len) ) {
+        //getcwd(buffer, len);
+        //buffer[strlen(buffer)] = '/';
+        //buffer[strlen(buffer) + 1] = 0;
     }
+
+    //printf("APP[a]: '%s'\n", buffer);
+
+    if ( (last_slash = strrchr(buffer, '/')) ) {
+        *last_slash = '\0';
+    }
+
+    //printf("APP[b]: '%s'\n", buffer);
 
     return last_slash ? buffer : NULL;
 }
@@ -42,9 +49,12 @@ start_java_main(JNIEnv *env)
     jclass main_class;
     jmethodID main_method;
     jobjectArray main_args;
+    char *mainClassName = "MainKt";
 
-    if ( ! (main_class = (*env)->FindClass(env, "org.incenp.myapplication.Launcher")) )
+    if ( ! (main_class = (*env)->FindClass(env, mainClassName)) ) {
+        errx(EXIT_FAILURE, "Can't find class: %s", mainClassName);
         return -1;
+    }
 
     if ( ! (main_method = (*env)->GetStaticMethodID(env, main_class, "main",
                                                     "([Ljava/lang/String;)V")) )
@@ -59,6 +69,8 @@ start_java_main(JNIEnv *env)
     return 0;
 }
 
+#define ADD_OPENS(module) "--add-opens=" module "=ALL-UNNAMED"
+
 /* Load and start the Java virtual machine. */
 static void *
 start_jvm(void *arg)
@@ -66,7 +78,7 @@ start_jvm(void *arg)
     char lib_path[PATH_MAX];
     void *lib;
     JavaVMInitArgs jvm_args;
-    JavaVMOption jvm_opts[1];
+    JavaVMOption jvm_opts[32];
     JavaVM *jvm;
     JNIEnv *env;
     CreateJavaVM_t *create_java_vm;
@@ -74,7 +86,7 @@ start_jvm(void *arg)
     (void) arg;
 
     /* Load the Java library in the bundled JRE. */
-    snprintf(lib_path, PATH_MAX, "%s/jre/lib/jli/libjli.dylib", app_dir);
+    snprintf(lib_path, PATH_MAX, "%s/jre/lib/libjli.dylib", app_dir);
     if ( ! (lib = dlopen(lib_path, RTLD_LAZY)) )
         errx(EXIT_FAILURE, "Cannot load Java library: %s", dlerror());
 
@@ -82,11 +94,22 @@ start_jvm(void *arg)
         errx(EXIT_FAILURE, "Cannot find JNI_CreateJavaVM: %s", dlerror());
 
     /* Prepare options for the JVM. */
-    jvm_opts[0].optionString = "-jar app.jar";
+    int nopts = 0;
+    jvm_opts[nopts++].optionString = "-Djava.class.path=./app.jar";
+
+    jvm_opts[nopts++].optionString = ADD_OPENS("java.desktop/sun.java2d.opengl");
+    jvm_opts[nopts++].optionString = ADD_OPENS("java.desktop/java.awt");
+    jvm_opts[nopts++].optionString = ADD_OPENS("java.desktop/sun.awt");
+    jvm_opts[nopts++].optionString = ADD_OPENS("java.desktop/sun.lwawt");
+    jvm_opts[nopts++].optionString = ADD_OPENS("java.desktop/sun.lwawt.macosx");
+    jvm_opts[nopts++].optionString = ADD_OPENS("java.desktop/com.apple.eawt");
+    jvm_opts[nopts++].optionString = ADD_OPENS("java.desktop/com.apple.eawt.event");
+    jvm_opts[nopts++].optionString = ADD_OPENS("java.desktop/sun.awt.X11");
+
     jvm_args.version = JNI_VERSION_1_2;
     jvm_args.ignoreUnrecognized = JNI_TRUE;
     jvm_args.options = jvm_opts;
-    jvm_args.nOptions = 1;
+    jvm_args.nOptions = nopts;
 
     if ( create_java_vm(&jvm, (void **)&env, &jvm_args) == JNI_ERR )
         errx(EXIT_FAILURE, "Cannot create Java virtual machine");

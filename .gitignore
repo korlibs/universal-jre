@@ -6,4 +6,6 @@
 /x86_64
 /.vscode
 /app
-
+.DS_Store
+/jre
+*.log
