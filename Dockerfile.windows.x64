@@ -1,7 +1,7 @@
-# docker build .
+# docker build -t build_windows_jre_x64 -f Dockerfile.windows.x64 .
 # https://stackoverflow.com/questions/61815364/how-can-i-get-my-win32-app-running-with-wine-in-docker
 #FROM --platform=linux/amd64 ubuntu:20.04
-FROM --platform=linux/amd64 scottyhardy/docker-wine:stable-9.0
+FROM --platform=linux/amd64 scottyhardy/docker-wine:stable-8.0.2-20240114
 
 WORKDIR /home/build
 
