@@ -1,0 +1,23 @@
+# docker build .
+# https://stackoverflow.com/questions/61815364/how-can-i-get-my-win32-app-running-with-wine-in-docker
+#FROM --platform=linux/amd64 ubuntu:20.04
+FROM --platform=linux/amd64 scottyhardy/docker-wine:stable-9.0
+
+WORKDIR /home/build
+
+RUN apt-get update
+
+RUN apt-get install curl binutils xz-utils wget software-properties-common gnupg2 winbind xvfb zip -y
+
+# Download package
+RUN curl -LO https://aka.ms/download-jdk/microsoft-jdk-21.0.3-windows-x64.zip
+
+# Extract package
+RUN unzip microsoft-jdk-21.0.3-windows-x64.zip
+RUN mv jdk-21.0.3+9 jdk-21
+
+# Create JRE
+RUN xvfb-run wine64 jdk-21.0.3+9/bin/jlink.exe --add-modules java.base,java.compiler,java.datatransfer,java.desktop,java.instrument,java.logging,java.management,java.management.rmi,java.naming,java.net.http,java.prefs,java.rmi,java.scripting,java.se,java.security.jgss,java.security.sasl,java.smartcardio,java.sql,java.sql.rowset,java.transaction.xa,java.xml,java.xml.crypto,jdk.accessibility,jdk.charsets,jdk.crypto.cryptoki,jdk.crypto.ec,jdk.dynalink,jdk.httpserver,jdk.internal.vm.ci,jdk.internal.vm.compiler,jdk.internal.vm.compiler.management,jdk.jdwp.agent,jdk.jfr,jdk.jsobject,jdk.localedata,jdk.management,jdk.management.agent,jdk.management.jfr,jdk.naming.dns,jdk.naming.rmi,jdk.net,jdk.nio.mapmode,jdk.sctp,jdk.security.auth,jdk.security.jgss,jdk.unsupported,jdk.xml.dom,jdk.zipfs --output /home/build/jre-21 --strip-debug --no-man-pages --no-header-files --compress=0
+
+# Pack JRE
+RUN cd /home/build && tar -cJf microsoft-jre-21.0.3-windows-x64.tar.xz jre-21
