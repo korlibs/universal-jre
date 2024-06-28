@@ -1,6 +1,8 @@
 *.tar.gz
 *.jar
 /universal
+/x64
+/aarch64
 /jdk-21+35
 /arm64
 /x86_64
@@ -10,3 +12,6 @@
 /jre
 *.log
 microsoft-jre*
+*.zip
+*.tar.gz
+*.tar.xz
